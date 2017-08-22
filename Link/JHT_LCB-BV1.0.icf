@@ -1,0 +1,165 @@
+/*###ICF### Section handled by ICF editor, don't touch! ****/
+/*-Editor annotation file-*/
+/* IcfEditorFile="$TOOLKIT_DIR$\config\ide\IcfEditor\a_v1_0.xml" */
+/*-Specials-*/
+define symbol __ICFEDIT_intvec_start__          = 0x08000000 ;
+define symbol __ICFEDIT_BootMain_start__        = 0x08000300 ;
+define symbol __ICFEDIT_Init_Table__            = 0x08000310 ; // 700-310 = 3F0
+
+
+
+
+/*-Memory Regions-*/
+define symbol __ICFEDIT_region_BOOT_start__     = 0x08000700 ;  // LCB BOOT
+define symbol __ICFEDIT_region_BOOT_end__ 	    = 0x080037FF ;
+//
+define symbol __ICFEDIT_region_INIT_start__     = 0x08003800 ;  // LCB Init
+define symbol __ICFEDIT_region_INIT_end__ 	    = 0x08003BFF ;
+
+define symbol __ICFEDIT_region_LOADER_start__   = 0x08003C00 ;  // LCB BOOT Loader
+define symbol __ICFEDIT_region_LOADER_end__ 	  = 0x08005CFF ;
+define symbol __ICFEDIT_LOADER_intvec_start__   = 0x08005D00 ;  // 512 byte
+define symbol __ICFEDIT_LOADER_intvec_end__ 	  = 0x08005EFF ;
+define symbol __ICFEDIT_LOADER_info_start__     = 0x08005F00 ;  // 256 byte
+define symbol __ICFEDIT_LOADER_info_end__ 	    = 0x08005FFF ;
+
+
+// Code
+define symbol __ICFEDIT_region_ROM_start__	    = 0x08006000 ;  // LCB API
+define symbol __ICFEDIT_region_ROM_end__   	    = 0x0801F7FF ;  // 1F3FF->1F7FF 20130412
+define symbol __ICFEDIT_Init_Table1__           = 0x0801F800 ;  // 1F400->1F800 20130412
+define symbol __ICFEDIT_User_intvec_start__     = 0x0801FC00 ;
+define symbol __ICFEDIT_User_info__             = 0x0801FF00 ;  //
+//
+define symbol __ICFEDIT_region_INITRAM_start__ 	= 0x20000000 ;
+define symbol __ICFEDIT_region_INITRAM_end__   	= 0x200001FF ;
+//
+define symbol __ICFEDIT_region_BOOTRAM_start__ 	= 0x20000200 ;
+define symbol __ICFEDIT_region_BOOTRAM_end__   	= 0x20000FFF ;
+//
+define symbol __ICFEDIT_region_RAM_start__ 	    = 0x20001000 ;
+define symbol __ICFEDIT_region_RAM_end__   	    = 0x20003FFF ;
+/*-Sizes-*/
+define symbol __ICFEDIT_size_cstack__           = 0x500 ;
+define symbol __ICFEDIT_size_heap__             = 0 ;
+/**** End of ICF editor section. ###ICF###*/
+
+
+define memory mem with size = 4G;
+define region INIT_region  = mem:[from __ICFEDIT_region_INIT_start__   to __ICFEDIT_region_INIT_end__];
+define region INITRAM_region = mem:[from __ICFEDIT_region_INITRAM_start__   to __ICFEDIT_region_INITRAM_end__];
+define region BOOT_region  = mem:[from __ICFEDIT_region_BOOT_start__   to __ICFEDIT_region_BOOT_end__];
+define region BOOTRAM_region = mem:[from __ICFEDIT_region_BOOTRAM_start__   to __ICFEDIT_region_BOOTRAM_end__];
+define region LOADER_region  = mem:[from __ICFEDIT_region_LOADER_start__   to __ICFEDIT_region_LOADER_end__];
+define region ROM_region   = mem:[from __ICFEDIT_region_ROM_start__   to __ICFEDIT_region_ROM_end__];
+define region RAM_region   = mem:[from __ICFEDIT_region_RAM_start__   to __ICFEDIT_region_RAM_end__];
+
+define block CSTACK    with alignment = 8, size = __ICFEDIT_size_cstack__   { };
+define block HEAP      with alignment = 8, size = __ICFEDIT_size_heap__     { };
+
+
+
+//initialize manually { readwrite  };
+initialize by copy { readwrite };
+do not initialize  { section .noinit };
+
+place at address mem:__ICFEDIT_intvec_start__ { readonly section .intvec };
+place at address mem:__ICFEDIT_User_info__	  { readonly section .userinfo };
+place at address mem:__ICFEDIT_User_intvec_start__ { readonly section .intvec1 };
+place at address mem:__ICFEDIT_Init_Table__ { readonly section .iar.init_table };
+place at address mem:__ICFEDIT_LOADER_intvec_start__ { readonly section .intvec2 };
+place at address mem:__ICFEDIT_LOADER_info_start__ { readonly section .loaderinfo };
+place at address mem:__ICFEDIT_BootMain_start__ { readonly section .bootaddress };
+
+
+//
+place in BOOTRAM_region { block CSTACK, block HEAP };
+place in RAM_region   { readwrite } ;
+place in ROM_region   { readonly };
+
+                        
+                        
+/* Place startup code at a fixed address */
+place at start of BOOT_region { readonly section .cstartup  };
+//place at start of BOOT_region { readonly section .iar.init_table };
+
+
+
+/* Place Boot object to sepcial address */
+place in BOOT_region { 
+                       section .text object boot.o                ,section .rodata object boot.o                  ,section .data_init object boot.o    
+                      ,section .text object Boot_stm32f10x_md.o   ,section .rodata object Boot_stm32f10x_md.o     ,section .data_init object Boot_stm32f10x_md.o
+                      ,section .text object boot_it.o             ,section .rodata object boot_it.o               ,section .data_init object boot_it.o
+                      //,section .text object system_stm32f10x.o    ,section .rodata object system_stm32f10x.o      ,section .data_init object system_stm32f10x.o
+                      //,section .text object core_cm3.o            ,section .rodata object core_cm3.o              ,section .data_init object core_cm3.o
+                      //,section .text object misc.o                ,section .rodata object misc.o                  ,section .data_init object misc.o
+                      ,section .text object Bootflash.o           ,section .rodata object Bootflash.o             ,section .data_init object Bootflash.o
+                      ,section .text object Bootuart.o            ,section .rodata object Bootuart.o              ,section .data_init object Bootuart.o
+                      //Library
+                      ,section .text object ABImemcpy.o           ,section .rodata object ABImemcpy.o
+                      ,section .text object ABImemset.o           ,section .rodata object ABImemset.o
+                      ,section .text object strcpy.o              ,section .rodata object strcpy.o
+                      ,section .text object strncpy.o             ,section .rodata object strncpy.o
+                      ,section .text object strlen.o              ,section .rodata object strlen.o
+                      ,section .text object strstr.o              ,section .rodata object strstr.o
+                      ,section .text object strchr.o              ,section .rodata object strchr.o
+                      } ;
+
+
+place in LOADER_region { 
+//LoaderUART
+ section .text object Loader.o              ,section .rodata object Loader.o              ,section .data_init object Loader.o
+,section .text object LoaderUART.o          ,section .rodata object LoaderUART.o          ,section .data_init object LoaderUART.o
+,section .text object Loader_it.o           ,section .rodata object Loader_it.o           ,section .data_init object Loader_it.o
+,section .text object Loader_ivector_md.o   ,section .rodata object Loader_ivector_md.o   ,section .data_init object Loader_ivector_md.o
+} ;
+
+/* Place Boot object to sepcial address */
+place in BOOTRAM_region {  section .bss object boot.o,section .data object boot.o  
+                          ,section .bss object Boot_stm32f10x_md.o,section .data object Boot_stm32f10x_md.o
+                          ,section .bss object boot_it.o,section .data object boot_it.o
+                          //,section .bss object system_stm32f10x.o,section .data object system_stm32f10x.o
+                          //,section .bss object core_cm3.o,section .data object core_cm3.o
+                          //,section .bss object misc.o,section .data object misc.o
+                          ,section .bss object Bootflash.o,section .data object Bootflash.o
+                          ,section .bss object Bootuart.o,section .data object Bootuart.o
+                          //Library
+                          ,section .bss object ABImemcpy.o,section .data object ABImemcpy.o
+                          ,section .bss object ABImemset.o,section .data object ABImemset.o
+                          ,section .bss object strcpy.o,section .data object strcpy.o
+                          ,section .bss object strncpy.o,section .data object strncpy.o
+                          ,section .bss object strlen.o,section .data object strlen.o
+                          ,section .bss object strstr.o,section .data object strstr.o
+                          ,section .bss object strchr.o,section .data object strchr.o
+                      } ;      
+
+place in INIT_region  {
+            ,section .text object system_stm32f10x.o    ,section .rodata object system_stm32f10x.o      ,section .data_init object system_stm32f10x.o
+            ,section .text object core_cm3.o            ,section .rodata object core_cm3.o              ,section .data_init object core_cm3.o
+            ,section .text object misc.o                ,section .rodata object misc.o 
+						,section .text object copy_init2.o,section .rodata object copy_init2.o
+						,section .text object data_init2.o,section .rodata object data_init2.o
+						,section .text object iarwstd.o,section .rodata object iarwstd.o
+						,section .text object zero_init2.o,section .rodata object zero_init2.o
+						,section .text object cmain.o,section .rodata object cmain.o
+						,section .text object exit.o,section .rodata object exit.o
+						,section .text object cexit.o,section .rodata object cexit.o
+						,section .text object low_level_init.o,section .rodata object low_level_init.o
+						} ;
+
+place in INITRAM_region {
+            ,section .bss object system_stm32f10x.o,section .data object system_stm32f10x.o
+            ,section .bss object core_cm3.o,section .data object core_cm3.o
+            ,section .bss object misc.o,section .data object misc.o
+            ,section .bss object copy_init2.o,section .data object copy_init2.o
+            ,section .bss object data_init2.o,section .data object data_init2.o
+            ,section .bss object iarwstd.o,section .data object iarwstd.o
+            ,section .bss object zero_init2.o,section .data object zero_init2.o
+            ,section .bss object cmain.o,section .data object cmain.o
+            ,section .bss object exit.o,section .data object exit.o
+            ,section .bss object cexit.o,section .data object cexit.o
+            ,section .bss object low_level_init.o,section .data object low_level_init.o
+						} ;
+
+
+
